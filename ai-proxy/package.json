@@ -1,0 +1,9 @@
+{
+  "name": "nexus-ai-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NEXUS — Groq AI прокси (Vercel serverless, Firebase ID token шалгалттай)",
+  "scripts": {
+    "test:local": "node scripts/local-test.js"
+  }
+}

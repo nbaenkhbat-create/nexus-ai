@@ -7,6 +7,9 @@ functions/.secret*
 *.pem
 *.key
 
+# --- Vercel (ai-proxy) ---
+.vercel/
+
 # --- Firebase CLI ---
 .firebase/
 firebase-debug.log

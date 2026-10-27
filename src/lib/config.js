@@ -24,6 +24,14 @@ export const APP_NAME = "NEXUS";
 export const FUNCTIONS_REGION = "us-central1";
 export const FUNCTIONS_PROJECT = "perpx-df732";
 
+/**
+ * Groq AI прокси (Vercel serverless) — AI чиглүүлэгчийн зам.
+ * Деплой хийсний дараа URL-ийг бичнэ:
+ *   https://<vercel-project>.vercel.app/api/proxy
+ * Хоосон байвал AI хэсэг "ажиллахгүй" тодорхой мэдэгдэл харуулна (бусад функц хэвийн).
+ */
+export const AI_PROXY_URL = "";
+
 export function isConfigured() {
   return (
     typeof FIREBASE_CONFIG.apiKey === "string" &&
