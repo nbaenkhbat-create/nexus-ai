@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>15 асуулттай үнэгүй тест — NEXUS</title>
+  <meta name="description" content="Бүртгэлгүй 15 асуулттай түргэн түвшин тогтоох тест. Үр дүн шууд гарна." />
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="stylesheet" href="./src/styles/main.css" />
+  <link rel="stylesheet" href="./src/styles/pages.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a class="logo" href="./index.html" aria-label="NEXUS нүүр">
+        <img src="./assets/logo-nexus.png" alt="NEXUS" />
+      </a>
+      <nav class="main-nav">
+        <a href="./index.html">Нүүр</a>
+        <a href="./index.html#chadvaar">Дөрвөн чадвар</a>
+        <a href="./index.html#yv">Хэрхэн ажилладаг вэ?</a>
+      </nav>
+      <div class="header-actions">
+        <a class="btn btn-outline btn-sm" href="./login.html">Нэвтрэх</a>
+        <a class="btn btn-primary btn-sm" href="./signup.html">Бүртгүүлэх</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="test-shell">
+    <!-- Эхлэл -->
+    <section id="startView" class="card test-intro hidden">
+      <span class="badge cyan" id="bankBadge">ҮНЭГҮЙ ТЕСТ</span>
+      <h1 id="introTitle" style="margin-top: 14px;">Бүртгэлгүй түргэн түвшин тогтоох тест</h1>
+      <p class="muted" id="introSubtitle">15 асуулт • Үр дүн шууд гарна</p>
+      <p class="muted" id="introGoal"></p>
+      <div class="meta-row" id="introMeta"></div>
+      <div class="test-instructions">
+        <b style="color: var(--text);">Заавар</b>
+        <ul id="introInstructions" style="margin: 10px 0 0;"></ul>
+      </div>
+      <div id="startExtra"></div>
+      <div style="display: flex; gap: 14px; flex-wrap: wrap; margin-top: 22px;">
+        <button class="btn btn-primary btn-lg" id="startBtn">Тест эхлэх →</button>
+        <a class="btn btn-ghost" href="./index.html">Буцах</a>
+      </div>
+      <p class="small muted" style="margin-top: 18px;">
+        Хариулт таны браузерийн session-д хадгалагдана — хуудсыг refresh хийвэл үргэлжлүүлж болно.
+        Бүртгэл, имэйл, нууц үг шаардахгүй.
+      </p>
+    </section>
+
+    <!-- Асуулт -->
+    <section id="testView" class="hidden">
+      <div class="test-topbar">
+        <span class="q-count" id="qCount">Асуулт 1 / 15</span>
+        <div class="progress-track"><span id="qProgress" style="width: 0%"></span></div>
+        <button class="btn btn-ghost btn-sm" id="restartBtn" title="Дахин эхлэх" aria-label="Дахин эхлэх">⟲</button>
+      </div>
+      <article class="card q-card">
+        <span class="badge q-skill" id="qSkill">Уншиж ойлгох</span>
+        <div class="q-passage hidden" id="qPassage"></div>
+        <div class="q-text" id="qText"></div>
+        <div class="options" id="qOptions"></div>
+        <textarea class="hidden" id="qTextAnswer" placeholder=""></textarea>
+        <div class="q-warn" id="qWarn"></div>
+        <div class="test-nav">
+          <button class="btn btn-outline" id="prevBtn">← Өмнөх</button>
+          <button class="btn btn-primary" id="nextBtn">Дараагийн →</button>
+        </div>
+      </article>
+    </section>
+
+    <!-- Үр дүн -->
+    <section id="resultView" class="hidden"></section>
+  </main>
+
+  <div class="toast-wrap" id="toasts"></div>
+
+  <footer class="site-footer" style="margin-top: 0;">
+    <div class="container">
+      <div class="footer-bottom" style="margin-top: 0; padding-top: 0; border-top: none;">
+        <span>© 2026 NEXUS — «Бод. Холбоосыг ол. Ахиц гарга.»</span>
+        <span>Туршилтын үнэлгээ нь албан ёсны дүгнэлт биш юм.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="./src/pages/test.js"></script>
+</body>
+</html>

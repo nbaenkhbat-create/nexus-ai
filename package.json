@@ -1,0 +1,10 @@
+{
+  "name": "nexus-platform",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "NEXUS — сурагчийн сэтгэхүйн чадварыг таньж, хөгжүүлэх веб систем (HTML/CSS/JS + Supabase + Gemini)",
+  "scripts": {
+    "dev": "python -m http.server 8080"
+  }
+}

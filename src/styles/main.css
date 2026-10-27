@@ -1,0 +1,274 @@
+/* NEXUS — Үндсэн дизайн систем */
+:root {
+  --bg-0: #04081a;
+  --bg-1: #071033;
+  --bg-2: #0a1640;
+  --panel: rgba(12, 24, 60, 0.66);
+  --panel-solid: #0b1536;
+  --panel-2: rgba(18, 32, 74, 0.72);
+  --border: rgba(96, 140, 255, 0.16);
+  --border-strong: rgba(120, 160, 255, 0.38);
+  --text: #e8eefc;
+  --muted: #93a4cc;
+  --muted-2: #6f81ab;
+  --blue: #38bdf8;
+  --blue-2: #4da6ff;
+  --purple: #8b5cf6;
+  --pink: #e879f9;
+  --cyan: #22d3ee;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --grad: linear-gradient(90deg, #22d3ee 0%, #6366f1 55%, #a855f7 100%);
+  --grad-soft: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(168, 85, 247, 0.16));
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 18px 50px rgba(2, 6, 23, 0.55);
+  --font: "Segoe UI", "Inter", system-ui, -apple-system, "Noto Sans", Roboto, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--text);
+  background-color: var(--bg-0);
+  background-image:
+    radial-gradient(1100px 600px at 82% -8%, rgba(99, 102, 241, 0.22), transparent 60%),
+    radial-gradient(900px 620px at -10% 12%, rgba(34, 211, 238, 0.14), transparent 55%),
+    radial-gradient(1000px 800px at 50% 120%, rgba(168, 85, 247, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, h4 { line-height: 1.2; margin: 0 0 0.5em; font-weight: 700; }
+p { margin: 0 0 1em; }
+ul { margin: 0; padding: 0; }
+
+.container { width: min(1180px, 92vw); margin: 0 auto; }
+.section { padding: 72px 0; }
+.section-head { text-align: center; max-width: 720px; margin: 0 auto 42px; }
+.section-head h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); }
+.section-head p { color: var(--muted); }
+.underline { width: 92px; height: 3px; border-radius: 3px; background: var(--grad); margin: 14px auto 0; }
+
+.grad-text {
+  background: linear-gradient(90deg, var(--blue) 0%, var(--purple) 60%, var(--pink) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.muted { color: var(--muted); }
+.small { font-size: 0.86rem; }
+.center { text-align: center; }
+.hidden { display: none !important; }
+
+/* ---- Товчнууд ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 13px 26px; border-radius: 999px; border: 1px solid transparent;
+  font-family: var(--font); font-size: 0.98rem; font-weight: 600; color: var(--text);
+  background: rgba(255, 255, 255, 0.05); cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-primary {
+  background: var(--grad); color: #fff;
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.35);
+}
+.btn-primary:hover { box-shadow: 0 14px 36px rgba(99, 102, 241, 0.5); }
+.btn-outline { border-color: var(--border-strong); background: rgba(255, 255, 255, 0.03); }
+.btn-outline:hover { background: rgba(120, 160, 255, 0.12); border-color: var(--blue-2); }
+.btn-ghost { background: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.btn-danger { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.4); color: #fecaca; }
+.btn-lg { padding: 16px 34px; font-size: 1.05rem; }
+.btn-sm { padding: 9px 16px; font-size: 0.86rem; }
+.btn-block { width: 100%; }
+.btn .arrow { transition: transform 0.18s ease; }
+.btn:hover .arrow { transform: translateX(4px); }
+
+/* ---- Карт / панел ---- */
+.card, .panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+.card { padding: 24px; transition: border-color 0.2s ease, transform 0.2s ease; }
+.card.hoverable:hover { border-color: var(--border-strong); transform: translateY(-4px); }
+.card-title { display: flex; align-items: center; gap: 12px; font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 999px; font-size: 0.76rem; font-weight: 600;
+  background: rgba(99, 102, 241, 0.16); border: 1px solid rgba(129, 140, 248, 0.35); color: #c7d2fe;
+}
+.badge.cyan { background: rgba(34, 211, 238, 0.12); border-color: rgba(34, 211, 238, 0.35); color: #a5f3fc; }
+.badge.pink { background: rgba(232, 121, 249, 0.12); border-color: rgba(232, 121, 249, 0.32); color: #f5d0fe; }
+.badge.ok { background: rgba(52, 211, 153, 0.12); border-color: rgba(52, 211, 153, 0.35); color: #a7f3d0; }
+.badge.warn { background: rgba(251, 191, 36, 0.12); border-color: rgba(251, 191, 36, 0.35); color: #fde68a; }
+
+.icon-box {
+  width: 46px; height: 46px; flex: none; border-radius: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--grad-soft); border: 1px solid var(--border-strong);
+  color: var(--blue);
+}
+.icon-box svg { width: 22px; height: 22px; }
+
+/* ---- Формууд ---- */
+.field { margin-bottom: 18px; }
+.field label { display: block; font-size: 0.87rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.input, .field input, .field textarea, .field select {
+  width: 100%; padding: 13px 16px; border-radius: var(--radius-sm);
+  background: rgba(4, 10, 30, 0.72); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font); font-size: 0.97rem;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.field input:focus, .field textarea:focus, .field select:focus, .input:focus {
+  outline: none; border-color: var(--blue-2);
+  box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.18);
+}
+.field textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+.form-error {
+  background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fecaca; padding: 12px 14px; border-radius: var(--radius-sm);
+  font-size: 0.9rem; margin-bottom: 16px;
+}
+.form-success {
+  background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.4);
+  color: #a7f3d0; padding: 12px 14px; border-radius: var(--radius-sm);
+  font-size: 0.9rem; margin-bottom: 16px;
+}
+.divider { display: flex; align-items: center; gap: 14px; color: var(--muted-2); font-size: 0.82rem; margin: 20px 0; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+/* ---- Сайтын толгой хэсэг ---- */
+.site-header {
+  position: sticky; top: 0; z-index: 60;
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  background: rgba(4, 8, 26, 0.72);
+  border-bottom: 1px solid var(--border);
+}
+.site-header .inner {
+  width: min(1240px, 94vw); margin: 0 auto;
+  display: flex; align-items: center; gap: 26px; height: 68px;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo img { height: 34px; width: auto; filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.45)); }
+.main-nav { display: flex; align-items: center; gap: 6px; margin-left: 12px; }
+.main-nav a {
+  padding: 9px 16px; border-radius: 999px; font-size: 0.93rem; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 8px; transition: 0.18s;
+}
+.main-nav a:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.main-nav a.active { color: #fff; background: rgba(99, 102, 241, 0.22); border: 1px solid rgba(129, 140, 248, 0.35); }
+.header-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.nav-toggle { display: none; background: none; border: none; color: var(--text); cursor: pointer; padding: 8px; }
+.nav-toggle svg { width: 26px; height: 26px; }
+
+@media (max-width: 940px) {
+  .main-nav {
+    position: absolute; top: 68px; left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 4px; padding: 14px;
+    background: rgba(6, 12, 36, 0.97); border-bottom: 1px solid var(--border);
+    display: none;
+  }
+  .main-nav.open { display: flex; }
+  .nav-toggle { display: block; }
+  .header-actions .btn-outline { display: none; }
+}
+
+/* ---- Хөл (footer) ---- */
+.site-footer { border-top: 1px solid var(--border); margin-top: 60px; padding: 46px 0 34px; background: rgba(3, 7, 22, 0.6); }
+.footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 30px; }
+.footer-grid h4 { font-size: 0.95rem; margin-bottom: 14px; }
+.footer-grid a, .footer-grid li { color: var(--muted); font-size: 0.9rem; list-style: none; margin-bottom: 9px; display: block; }
+.footer-grid a:hover { color: var(--blue); }
+.footer-bottom { margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; color: var(--muted-2); font-size: 0.84rem; }
+@media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ---- Модал, мэдэгдэл, хоосон төлөв ---- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
+  background: rgba(2, 5, 18, 0.78); backdrop-filter: blur(6px); padding: 20px;
+}
+.modal { width: min(460px, 100%); padding: 28px; text-align: center; }
+.modal h3 { margin-bottom: 10px; }
+.modal-actions { display: flex; gap: 12px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+
+.toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  padding: 13px 18px; border-radius: 14px; font-size: 0.9rem; max-width: 340px;
+  background: var(--panel-solid); border: 1px solid var(--border-strong); box-shadow: var(--shadow);
+  animation: toast-in 0.25s ease;
+}
+.toast.ok { border-color: rgba(52, 211, 153, 0.5); }
+.toast.err { border-color: rgba(248, 113, 113, 0.5); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.empty-state {
+  text-align: center; padding: 46px 24px; border: 1px dashed rgba(120, 160, 255, 0.35);
+  border-radius: var(--radius); background: rgba(10, 20, 52, 0.4);
+}
+.empty-state .es-icon {
+  width: 62px; height: 62px; margin: 0 auto 16px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--grad-soft); border: 1px solid var(--border-strong); color: var(--blue);
+}
+.empty-state .es-icon svg { width: 28px; height: 28px; }
+.empty-state h3 { font-size: 1.1rem; }
+.empty-state p { color: var(--muted); max-width: 460px; margin: 0 auto 18px; }
+
+.spinner {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.18); border-top-color: var(--blue);
+  animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Эхлэл intro (logo loading video) ---- */
+.intro-screen {
+  position: fixed; inset: 0; z-index: 999; background: #000;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.6s ease;
+}
+.intro-screen video { width: 100%; height: 100%; object-fit: cover; }
+.intro-screen.fade { opacity: 0; pointer-events: none; }
+.intro-skip {
+  position: absolute; bottom: 26px; right: 26px;
+  padding: 9px 18px; border-radius: 999px; font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; cursor: pointer;
+}
+
+/* ---- Тэмдэглэл ---- */
+.note {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: var(--radius-sm); padding: 13px 15px; font-size: 0.88rem; color: #bae6fd;
+}
+.note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.note.warn { background: rgba(251, 191, 36, 0.08); border-color: rgba(251, 191, 36, 0.3); color: #fde68a; }
+.note.danger { background: rgba(248, 113, 113, 0.08); border-color: rgba(248, 113, 113, 0.3); color: #fecaca; }
+
+.progress-track {
+  height: 8px; border-radius: 999px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+.progress-track > span {
+  display: block; height: 100%; border-radius: 999px;
+  background: var(--grad);
+  transition: width 0.35s ease;
+}

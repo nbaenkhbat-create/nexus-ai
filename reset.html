@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Нууц үг сэргээх — NEXUS</title>
+  <link rel="icon" type="image/png" href="./favicon.png" />
+  <link rel="stylesheet" href="./src/styles/main.css" />
+  <link rel="stylesheet" href="./src/styles/pages.css" />
+</head>
+<body data-page="reset">
+  <header class="site-header">
+    <div class="inner">
+      <a class="logo" href="./index.html"><img src="./assets/logo-nexus.png" alt="NEXUS" /></a>
+      <nav class="main-nav">
+        <a href="./index.html">Нүүр</a>
+        <a href="./login.html">Нэвтрэх</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-shell">
+    <div>
+      <div class="card auth-card">
+        <a class="logo" href="./index.html"><img src="./assets/logo-nexus.png" alt="NEXUS" /></a>
+        <h1>Нууц үг сэргээх</h1>
+        <p class="sub" id="resetSub">Имэйлээ бичнэ үү — сэргээх холболт илгээнэ</p>
+
+        <div id="setupNotice" class="hidden"></div>
+        <div id="successBox" class="form-success hidden"></div>
+
+        <!-- Имэйл илгээх хэлбэр -->
+        <form id="resetForm" novalidate>
+          <div class="field">
+            <label for="email">Имэйл</label>
+            <input id="email" type="email" autocomplete="email" placeholder="tailan@жишээ.mn" required />
+          </div>
+          <div id="formError" class="form-error hidden"></div>
+          <button class="btn btn-primary btn-block" type="submit" id="submitBtn">Сэргээх холболт илгээх</button>
+        </form>
+
+        <!-- Шинэ нууц үг хэлбэр (сэргээх холболтоор орсон үед) -->
+        <form id="newPassForm" class="hidden" novalidate>
+          <div class="field">
+            <label for="newPassword">Шинэ нууц үг (доод хэмжээ 8)</label>
+            <input id="newPassword" type="password" autocomplete="new-password" placeholder="••••••••" minlength="8" required />
+          </div>
+          <div class="field">
+            <label for="newPassword2">Дахин бичнэ үү</label>
+            <input id="newPassword2" type="password" autocomplete="new-password" placeholder="••••••••" minlength="8" required />
+          </div>
+          <div id="formError2" class="form-error hidden"></div>
+          <button class="btn btn-primary btn-block" type="submit" id="savePassBtn">Шинэчлэх →</button>
+        </form>
+
+        <p class="auth-alt"><a href="./login.html">← Нэвтрэх хуудас</a></p>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-wrap" id="toasts"></div>
+  <script type="module" src="./src/pages/auth.js"></script>
+</body>
+</html>
