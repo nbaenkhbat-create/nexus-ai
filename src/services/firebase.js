@@ -26,7 +26,12 @@ export async function getFirebase() {
           import(`${BASE}/firebase-functions.js`),
         ]);
       const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
-      return { app, auth: getAuth(app), db: getFirestore(app), fns: getFunctions(app) };
+      const auth = getAuth(app);
+      // Auth-ийн анхны restore (IndexedDB-ээс сэргээлт) дуустал хүлээнэ.
+      // Үгүй бол шинэ хуудас дээр currentUser түр хоосон болж, dashboard
+      // "нэвтрээгүй" гэж буруу шийдэж login руу буцна (race condition).
+      if (typeof auth.authStateReady === "function") await auth.authStateReady();
+      return { app, auth, db: getFirestore(app), fns: getFunctions(app) };
     })().catch((e) => {
       p = null;
       throw e;

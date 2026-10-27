@@ -99,25 +99,26 @@ export async function sendPasswordReset({ email }) {
 export async function updatePassword({ password }) {
   const fb = await getFirebase();
   if (!fb) throw new Error("Firebase тохируулаагүй байна.");
-  const { updatePassword: fbUpdate, currentUser } = await import(
+  const { updatePassword: fbUpdate } = await import(
     "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js"
   );
-  if (!currentUser) throw new Error("Нэвтрээгүй байна.");
-  await fbUpdate(currentUser, password);
+  if (!fb.auth.currentUser) throw new Error("Нэвтрээгүй байна.");
+  await fbUpdate(fb.auth.currentUser, password);
 }
 
 export async function updateDisplayName({ displayName }) {
   const fb = await getFirebase();
   if (!fb) throw new Error("Firebase тохируулаагүй байна.");
-  const { updateProfile, currentUser } = await import(
+  const { updateProfile } = await import(
     "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js"
   );
   const { doc, setDoc } = await import(
     "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js"
   );
-  if (!currentUser) throw new Error("Нэвтрээгүй байна.");
-  await updateProfile(currentUser, { displayName });
-  await setDoc(doc(fb.db, "profiles", currentUser.uid), { display_name: displayName }, { merge: true });
+  if (!fb.auth.currentUser) throw new Error("Нэвтрээгүй байна.");
+  const me = fb.auth.currentUser;
+  await updateProfile(me, { displayName });
+  await setDoc(doc(fb.db, "profiles", me.uid), { display_name: displayName }, { merge: true });
 }
 
 export async function onAuthChange(cb) {
