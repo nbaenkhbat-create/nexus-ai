@@ -1,14 +1,14 @@
 /**
- * NEXUS — AI чиглүүлэгчийн үйлчилгээ.
+ * NEXUS — AI чиглүүлэгч (Firebase Cloud Function `gemini` дамжуулан Gemini API).
  *
  * Архитектур:
- *  - Gemini API-г ЗӨВХӨН Supabase Edge Function (`/functions/v1/gemini`) дамжуулан дуудна.
- *  - API түлхүүр зөвхөн сервер талд (Supabase Secret GEMINI_API_KEY) байна.
- *  - frontend рүү зөвхөн хариулт ирнэ; хувийн мэдээлэл илгээхгүй.
- *  - Алдаа/хязгаар: тодорхой кодуудаар буцаана → хуудас энгийн бэлтгэсэн
- *    зөвлөмжөөр хэвийн ажиллана (тест, дасгал, ахиц нөлөөлөхгүй).
+ *  - Зөвхөн Cloud Function (server) Gemini-г дуудна → GEMINI_API_KEY frontend-д үгүй.
+ *  - Callable function нь Firebase Auth-ийн ID token-оор хэрэглэгчийг баталгаажуулна.
+ *  - Өдрийн хязгаарлалт function талд Firestore-оор тооцогдоно.
+ *  - Алдаа/хязгаар: тодорхой кодуудаар буцна → хуудас бэлтгэсэн энгийн зөвлөмжөөр
+ *    хэвийн үргэлжилнэ (тест, дасгал, ахиц нөлөөлөхгүй).
  */
-import { configured, getClient } from "./supabase.js";
+import { configured, getFirebase } from "./firebase.js";
 
 export const AI_ERRORS = {
   not_configured: "not_configured",
@@ -39,39 +39,40 @@ export function aiStatus() {
 export async function askAI(payload) {
   if (!configured()) throw { code: AI_ERRORS.not_configured };
 
-  const sb = await getClient();
-  const { data: sessionData } = await sb.auth.getSession();
-  const session = sessionData.session;
-  if (!session) throw { code: AI_ERRORS.auth_required };
+  const fb = await getFirebase();
+  if (!fb || !fb.auth.currentUser) throw { code: AI_ERRORS.auth_required };
 
-  // Хувийн мэдээлэл илгээхгүй: зөвхөн шаардлагатай контекст (чадварын хувь, нэр)
+  const { httpsCallable } = await import(
+    "https://www.gstatic.com/firebasejs/13.1.0/firebase-functions.js"
+  );
+
   const body = {
     messages: (payload.messages || []).slice(-12),
     context: sanitizeContext(payload.context),
   };
 
-  let res;
+  let result;
   try {
-    res = await fetch(`${sb.supabaseUrl}/functions/v1/gemini`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-        apikey: sb.supabaseKey,
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (_) {
-    throw { code: AI_ERRORS.unavailable };
+    const fn = httpsCallable(fb.fns, "gemini");
+    const res = await fn(body);
+    result = res.data;
+  } catch (e) {
+    throw { code: mapFunctionError(e) };
   }
 
-  if (res.status === 429) throw { code: AI_ERRORS.rate_limited };
-  if (!res.ok) throw { code: AI_ERRORS.unavailable };
-
-  const data = await res.json().catch(() => null);
-  const text = data && (data.text || data.reply);
+  const text = result && (result.text || result.reply);
   if (!text) throw { code: AI_ERRORS.unavailable };
   return text;
+}
+
+function mapFunctionError(e) {
+  const code = e?.code || "";
+  if (code === "functions/unauthenticated" || code === "unauthenticated")
+    return AI_ERRORS.auth_required;
+  if (code === "functions/resource-exhausted" || code.includes("rate") || code === "resource-exhausted")
+    return AI_ERRORS.rate_limited;
+  // function deploy хийгээгүй: functions/not-found
+  return AI_ERRORS.unavailable;
 }
 
 function sanitizeContext(ctx) {
@@ -86,12 +87,12 @@ function sanitizeContext(ctx) {
 export function describeAiError(code) {
   switch (code) {
     case AI_ERRORS.not_configured:
-      return "AI чиглүүлэгч ажиллахгүй байна: Supabase тохируулаагүй. Техник тохиргоо хийгдсэний дараа нээгдэнэ.";
+      return "AI чиглүүлэгч ажиллахгүй байна: Firebase тохируулаагүй. Тохиргоо хийгдсэний дараа нээгдэнэ.";
     case AI_ERRORS.auth_required:
       return "AI чиглүүлэгч ашиглахын тулд нэвтрэх шаардлагатай.";
     case AI_ERRORS.rate_limited:
       return "Өнөөдрийн AI хэрэглээний хязгаарт хүрлээ. Маргааш дахин оролдоно уу эсвэл одоорой дасгалаа үргэлжлүүлээрэй.";
     default:
-      return "AI чиглүүлэгч түр ажиллахгүй байна. Тест, дасгал, ахицын бүх функц хэвийн ажиллаж байна.";
+      return "AI чиглүүлэгч түр ажиллахгүй байна (Cloud Function deploy хийгээгүй эсвэл түлхүүр байхгүй). Тест, дасгал, ахицын бүх функц хэвийн ажиллаж байна.";
   }
 }

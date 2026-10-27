@@ -3,7 +3,7 @@ import { icon } from "../../components/icons.js";
 import { radarChart } from "../../components/charts.js";
 import { listTestResults, listExerciseProgress, guestProfile, setGuestProfile, localListTests, localClearTests } from "../../lib/store.js";
 import { updateDisplayName } from "../../services/auth.js";
-import { configured } from "../../services/supabase.js";
+import { configured } from "../../services/firebase.js";
 import { SKILLS, SKILL_ORDER } from "../../lib/questions.js";
 import { EXERCISES } from "../../lib/exercises.js";
 import { fmtDate, kindTitle } from "./home.js";
@@ -116,13 +116,12 @@ export async function renderSettings(ctx) {
         <div class="list-row"><div class="lr-main"><div class="lr-title">Нэр</div><div class="lr-sub">${escapeText(user.displayName)}</div></div>
           <button class="btn btn-outline btn-sm" data-go="profile">Засах</button></div>
         <div class="list-row"><div class="lr-main"><div class="lr-title">Имэйл</div><div class="lr-sub">${user.email ? escapeText(user.email) : "— (зочин горим)"}</div></div></div>
-        <div class="list-row"><div class="lr-main"><div class="lr-title">Горим</div><div class="lr-sub">${
-          mode === "cloud" ? "Supabase холбогдсон — өгөгдөл област хадгалагдана" : "Дизайн харах горим (тохируулаагүй)"
+        <div class="list-row"><div class="lr-main"><div class="lr-title">Горим</div><div class="lr-sub">${            mode === "cloud" ? "Firebase холбогдсон — өгөгдөл Firestore-д хадгалагдана" : "Дизайн харах горим (тохируулаагүй)"
         }</div></div></div>
         ${
           mode !== "cloud"
             ? `<div class="note warn" style="margin-top:14px;">${icon("info")}<span>Нэвтрэлт, бүртгэл, AI ажиллахын тулд
-               <code>src/lib/config.js</code> дээр Supabase URL/anon key тавина уу (README-г харна уу).</span></div>`
+               <code>src/lib/config.js</code> дээрх <code>FIREBASE_CONFIG</code> утгуудыг Firebase Console-оос авч оруулна уу (README-г харна уу).</span></div>`
             : ""
         }
         <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
@@ -154,7 +153,7 @@ export async function renderSettings(ctx) {
 
         <div class="note" style="margin-top:14px;">${icon("shield")}<span>
           <b>Нууц үг сэргээх:</b> <a href="./reset.html" style="color:var(--blue);">reset.html</a><br/>
-          <b>Бүртгэл устгах:</b> Supabase Dashboard → Authentication → Users дээр админ устгана
+          <b>Бүртгэл устгах:</b> Firebase Console → Authentication → Users дээр админ устгана
           (хүсэлтийг баталгаажуулсаны дараа).<br/>
           Хүүхдийн эмзэг мэдээлэл (овог нэр, регистр, сургууль) цуглуулаагүй.
         </span></div>

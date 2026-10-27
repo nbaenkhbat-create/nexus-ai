@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// ============================================================
+// NEXUS — Firestore Security Rules
+// Дүрэм: хэрэглэгч ЗӨВХӨН өөрийн өгөгдөлд хандах боломжтой.
+//   profiles/{uid}              → зөвхөн өөрөө (uid == auth.uid)
+//   assessments/{id}            → user_id шалгалт (uid рүү илгээх/устгах)
+//   exercise_progress/{uid_exId}→ user_id шалгалт (upsert)
+//   ai_usage_logs/{id}          → зөвхөн унших (бичлэгийг Cloud Function хийнэ)
+// Deploy: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes
+// ============================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Хэрэглэгчийн профайл ----
+    match /profiles/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // ---- Тестийн үр дүн ----
+    match /assessments/{id} {
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.user_id == request.auth.uid;
+      allow update: if false; // өгсөн тест өөрчлөгдөхгүй (бүрт тогтмол түүх)
+      allow delete: if request.auth != null && resource.data.user_id == request.auth.uid;
+    }
+
+    // ---- Дасгалын явц (uid_exId нэртэй баримт, upsert) ----
+    match /exercise_progress/{docId} {
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update: if request.auth != null
+        && request.resource.data.user_id == request.auth.uid
+        && docId == request.auth.uid + '_' + request.resource.data.exercise_id;
+      allow delete: if request.auth != null && resource.data.user_id == request.auth.uid;
+    }
+
+    // ---- AI хэрэглээний тэмдэглэл (бичлэгийг зөвхөн Cloud Function хийнэ) ----
+    match /ai_usage_logs/{id} {
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // Бусад бүх баримт — унших/бичих хориглолт (default deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

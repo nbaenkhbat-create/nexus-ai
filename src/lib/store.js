@@ -1,14 +1,22 @@
 /**
- * NEXUS — Өгөгдлийн хадгалалтын давуу-түрүүлгэ (local + Supabase cloud).
+ * NEXUS — Өгөгдлийн хадгалалт (localStorage + Cloud Firestore).
  *
  * Дүрэм:
- *  - Бүртгэлгүй тестийн үр дүн зөвхөн төхөөрөмж дээр (localStorage) хадгалагдана.
- *  - Нэвтэрсэн хэрэглэгчийн өгөгдөл Supabase-д (RLS-тэй) хадгалагдана.
- *  - Бүртгэлгүй үеийн үр дүнг бүртгэлтэй холбохыг хэрэглэгч зөвшөөрсөн үед л хийнэ
- *    (uploadPending() нь тусгайлан баталгаажуулалт асуудаг).
+ *  - Бүртгэлгүй тестийн үр дүн зөвхөн төхөөрөмж дээр (localStorage).
+ *  - Нэвтэрсэн хэрэглэгчийн өгөгдөл Firestore-д, security rules-ийн дагуу
+ *    ЗӨВХӨН ӨӨРИЙНХ нь хадгалагдана (uid шалгалт).
+ *  - Бүртгэлгүй үеийн үр дүнг бүртгэлтэй холбохыг хэрэглэгч ЗӨВШӨӨРСӨН ҮЕД Л
+ *    uploadPending() дуудагдана.
  *  - Хуурамч, зохиомол өгөгдөл хэзээ ч үүсэхгүй: бичлэггүй бол хоосон жагсаалт.
+ *
+ * Бүтэц (Firestore):
+ *  profiles/{uid}                 {display_name, email, created_at}
+ *  assessments/{autoId}           {user_id, kind, overall, rawTotal, maxTotal,
+ *                                  skills{}, perQuestion[], completed_at}
+ *  exercise_progress/{uid_exId}   {user_id, exercise_id, status, score, completed_at}
+ *  ai_usage_logs/{autoId}         {user_id, feature, created_at}  (Function бичнэ)
  */
-import { configured, getClient } from "../services/supabase.js";
+import { configured, getFirebase } from "../services/firebase.js";
 
 const K = {
   tests: "nexus_tests_v1",
@@ -59,7 +67,7 @@ export function localClearTests() {
   write(K.tests, []);
 }
 
-/* ---------- Зошингийн хүлээж буй хадгалалт (бүртгэлтэй холболт) ---------- */
+/* ---------- Зошингийн хүлээж буй хадгалалт ---------- */
 export function setPendingUpload(result) {
   write(K.pending, result);
 }
@@ -70,7 +78,7 @@ export function clearPendingUpload() {
   write(K.pending, null);
 }
 
-/* ---------- Ахиц (дасгалын явц): локал ---------- */
+/* ---------- Дасгалын явц: локал ---------- */
 export function localListExProgress() {
   return read(K.ex, []);
 }
@@ -81,88 +89,82 @@ export function localSaveExProgress(item) {
   return item;
 }
 
-/* ---------- Session ---------- */
+/* ---------- Session (Firebase) ---------- */
 export async function currentSession() {
   if (!configured()) return null;
   try {
-    const sb = await getClient();
-    const { data } = await sb.auth.getSession();
-    return data.session || null;
+    const fb = await getFirebase();
+    return fb && fb.auth.currentUser ? { user: { uid: fb.auth.currentUser.uid } } : null;
   } catch (_) {
     return null;
   }
 }
 
-/* ---------- Тестийн үр дүн: cloud ---------- */
+/* ---------- Тестийн үр дүн: Firestore ---------- */
 async function cloudSaveTest(session, result) {
-  const sb = await getClient();
-  const uid = session.user.id;
-  const { data: assessment, error } = await sb
-    .from("assessments")
-    .insert({
-      user_id: uid,
-      assessment_type: result.kind || "quick-15",
-      total_score: result.overall,
-      max_score: result.maxTotal,
-      raw_score: result.rawTotal,
-      completed_at: result.testedAt,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-
-  const skillRows = Object.entries(result.skills).map(([name, s]) => ({
-    assessment_id: assessment.id,
-    skill_name: name,
-    score: s.pct,
-    raw_score: s.raw,
-    max_raw: s.max,
-    feedback: s.level,
-  }));
-  const { error: e2 } = await sb.from("skill_results").insert(skillRows);
-  if (e2) throw e2;
-
-  const answerRows = (result.perQuestion || []).map((p) => ({
-    assessment_id: assessment.id,
-    question_id: p.id,
-    answer: typeof p.given === "string" ? p.given.slice(0, 4000) : String(p.given ?? ""),
-    score: p.pts,
-    skill_name: p.skill,
-  }));
-  if (answerRows.length) {
-    const { error: e3 } = await sb.from("assessment_answers").insert(answerRows);
-    if (e3) throw e3;
-  }
-  return { ...result, id: assessment.id, cloud: true };
+  const fb = await getFirebase();
+  const uid = session.user.uid;
+  const { collection, addDoc, serverTimestamp } = await import(
+    "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js"
+  );
+  const ref = await addDoc(collection(fb.db, "assessments"), {
+    user_id: uid,
+    kind: result.kind || "quick-15",
+    overall: result.overall ?? 0,
+    rawTotal: result.rawTotal ?? 0,
+    maxTotal: result.maxTotal ?? 0,
+    skills: result.skills || {},
+    perQuestion: (result.perQuestion || []).map((p) => ({
+      id: p.id,
+      skill: p.skill,
+      pts: p.pts,
+      max: p.max,
+      given: typeof p.given === "string" ? p.given.slice(0, 4000) : p.given ?? null,
+    })),
+    completed_at: result.testedAt || new Date().toISOString(),
+    created_at: serverTimestamp(),
+  });
+  return { ...result, id: ref.id, cloud: true };
 }
 
 async function cloudListTests(session) {
-  const sb = await getClient();
-  const { data, error } = await sb
-    .from("assessments")
-    .select("id, assessment_type, total_score, max_score, raw_score, completed_at, skill_results(*)")
-    .order("completed_at", { ascending: false })
-    .limit(50);
-  if (error) throw error;
-  return (data || []).map((a) => ({
+  const fb = await getFirebase();
+  const uid = session.user.uid;
+  const { collection, query, where, orderBy, limit, getDocs } = await import(
+    "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js"
+  );
+  // Анхны ачаалалтад composite index бэлэн биш байж магадгүй тул
+  // эхлээд зөвхөн user_id-гаар авч, дараа нь төхөөрөмж дээр эрэмбэлнэ.
+  let snap;
+  try {
+    const q = query(
+      collection(fb.db, "assessments"),
+      where("user_id", "==", uid),
+      orderBy("completed_at", "desc"),
+      limit(50)
+    );
+    snap = await getDocs(q);
+  } catch (indexErr) {
+    // Composite index хараахан үүсээгүй үед: энгийн query + төхөөрөмж дээр эрэмбэлэх
+    const q = query(collection(fb.db, "assessments"), where("user_id", "==", uid), limit(50));
+    snap = await getDocs(q);
+  }
+  const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  rows.sort((a, b) => String(b.completed_at || "").localeCompare(String(a.completed_at || "")));
+  return rows.map((a) => ({
     id: a.id,
-    kind: a.assessment_type,
-    overall: a.total_score,
-    maxTotal: a.max_score,
-    rawTotal: a.raw_score,
+    kind: a.kind,
+    overall: a.overall,
+    maxTotal: a.maxTotal,
+    rawTotal: a.rawTotal,
     testedAt: a.completed_at,
-    skills: Object.fromEntries(
-      (a.skill_results || []).map((s) => [
-        s.skill_name,
-        { pct: s.score, raw: s.raw_score, max: s.max_raw, level: s.feedback, tip: null },
-      ])
-    ),
+    skills: a.skills || {},
   }));
 }
 
 /**
  * Тест дууссаны дараа хадгалах.
- * - Нэвтэрсэн → cloud (тэр хэрэглэгчийн бүртгэлд).
+ * - Нэвтэрсэн → Firestore (тэр хэрэглэгчийн өгөгдөл).
  * - Бүртгэлгүй → локал + бүртгэлтэй холбох хүлээсийн тэмдэг.
  */
 export async function saveTestResult(result) {
@@ -171,7 +173,6 @@ export async function saveTestResult(result) {
     try {
       return await cloudSaveTest(session, result);
     } catch (e) {
-      // cloud амжилтгүй бол локалд хадгалж үлдэнэ (өгөгдөл алдахгүй)
       localSaveTest(result);
       throw e;
     }
@@ -187,7 +188,6 @@ export async function listTestResults() {
     try {
       return await cloudListTests(session);
     } catch (_) {
-      // cloud саатвал локал хуулбарыг харуулна
       return localListTests();
     }
   }
@@ -210,15 +210,24 @@ export async function uploadPending({ confirmConsent }) {
 export async function saveExerciseProgress(item) {
   const session = await currentSession();
   if (session) {
-    const sb = await getClient();
-    const { error } = await sb.from("exercise_progress").upsert({
-      user_id: session.user.id,
-      exercise_id: item.exercise_id,
-      status: item.status,
-      score: item.score ?? null,
-      completed_at: item.completed_at || new Date().toISOString(),
-    });
-    if (error) throw error;
+    const fb = await getFirebase();
+    const { doc, setDoc, serverTimestamp } = await import(
+      "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js"
+    );
+    const uid = session.user.uid;
+    const ref = doc(fb.db, "exercise_progress", `${uid}_${item.exercise_id}`);
+    await setDoc(
+      ref,
+      {
+        user_id: uid,
+        exercise_id: item.exercise_id,
+        status: item.status,
+        score: item.score ?? null,
+        completed_at: item.completed_at || new Date().toISOString(),
+        updated_at: serverTimestamp(),
+      },
+      { merge: true }
+    );
     return item;
   }
   return localSaveExProgress(item);
@@ -228,10 +237,16 @@ export async function listExerciseProgress() {
   const session = await currentSession();
   if (session) {
     try {
-      const sb = await getClient();
-      const { data, error } = await sb.from("exercise_progress").select("*");
-      if (error) throw error;
-      return data || [];
+      const fb = await getFirebase();
+      const { collection, query, where, getDocs } = await import(
+        "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js"
+      );
+      const q = query(
+        collection(fb.db, "exercise_progress"),
+        where("user_id", "==", session.user.uid)
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => d.data());
     } catch (_) {
       return localListExProgress();
     }

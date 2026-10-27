@@ -131,7 +131,7 @@ async function updateAuthButton() {
       btn.classList.add("btn-primary");
     }
   } catch (_) {
-    /* Supabase тохируулаагүй үед нэвтрэх товч хэвийн үлдэнэ */
+    /* Firebase тохируулаагүй үед нэвтрэх товч хэвийн үлдэнэ */
   }
 }
 

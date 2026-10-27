@@ -6,9 +6,10 @@ NEXUS нь уншиж ойлгох, асуудал шийдвэрлэх, мэд�
 - **Нүүр хуудас** — системийн танилцуулга
 - **15 асуулттай үнэгүй тест** — бүртгэлгүй, шууд үр дүн (албан ёсны Word файлаас авсан асуулт)
 - **Сурагчийн dashboard** — тестийн түүх, дасгал, ахицын тайлан, тохиргоо
-- **AI чиглүүлэгч** — Google Gemini (зөвхөн серверээр дамжуулан)
+- **AI чиглүүлэгч** — Google Gemini (зөвхөн Cloud Function-оор дамжуулан)
 
-> **Чухал:** Google Apps Script ашиглаагүй. API түлхүүр frontend-д ил байхгүй.
+> **Чухал:** Google Apps Script ашиглаагүй. `GEMINI_API_KEY` frontend-д хэзээ ч байхгүй.
+> Firebase-ийн Web `apiKey` нь нууц түлхүүр биш, публик таних мэдээлэл юм.
 
 ---
 
@@ -17,10 +18,10 @@ NEXUS нь уншиж ойлгох, асуудал шийдвэрлэх, мэд�
 | Хэсэг | Технологи |
 |---|---|
 | Frontend | Энгийн HTML + CSS + JavaScript (ES modules, build шаардахгүй) |
-| Бүртгэл/нэвтрэлт | Supabase Auth (Email + Google OAuth) |
-| Database | Supabase PostgreSQL + **Row Level Security (RLS)** |
-| Backend / AI | Supabase Edge Function → Google Gemini API |
-| Hosting | GitHub Pages (frontend), Supabase (backend + database) |
+| Бүртгэл/нэвтрэлт | **Firebase Authentication** (Email/Password + Google) |
+| Database | **Cloud Firestore** + security rules (зөвхөн өөрийн өгөгдөл) |
+| Backend / AI | **Firebase Cloud Functions** (callable `gemini`) → Google Gemini API |
+| Hosting | GitHub Pages (frontend) — `nbaenkhbat-create/nexus-ai` |
 | График | Өөрийн бичсэн SVG компонент (гадаад номгүй) |
 
 **Файлуудын бүтэц**
@@ -32,12 +33,14 @@ login.html / signup.html / reset.html
 app.html              # сурагчийн dashboard (hash-роутер)
 assets/               # лого, favicon, logo-loading.mp4
 src/styles/           # дизайн систем
-src/lib/              # config, асуулт, оноо, өгөгдөл, дасгал
-src/services/         # supabase, auth, ai
+src/lib/              # config, асуулт, оноо, өгөгдөл(store), дасгал
+src/services/         # firebase, auth, ai
 src/components/       # icon, chart, neural canvas
 src/pages/            # хуудас бүрийн логик + views/
-supabase/migrations/  # database бүтэц + RLS
-supabase/functions/gemini/  # Gemini Edge Function
+functions/            # Gemini Cloud Function (server)
+firestore.rules       # өгөгдлийн хамгаалалт (RLS-ийн эквивалент)
+firestore.indexes.json
+firebase.json         # Firestore / Functions / Auth / Hosting тохиргоо
 docs/source/          # эх материалууд (Word/Excel)
 README.md  .env.example  .gitignore
 ```
@@ -46,191 +49,182 @@ README.md  .env.example  .gitignore
 
 ## 2. Local орчинд ажиллуулах
 
-Эхлээд ямар нэг static server ашиглана уу (ES modules-д шаардлагатай):
-
 ```bash
 # аль нэгийг:
-python -m http.server 8080
-npx -y serve -l 8080
+python -m http.server 8090
+npx -y serve -l 8090
 ```
 
-Дараа нь `http://localhost:8080` нээнэ үү.
+Дараа нь `http://localhost:8090` нээнэ үү.
 
-- **Бүртгэл/тохиргоо хийхээс өмнө** ч тест өгөх, үр дүн харах, dashboard-ын
-  дизайн харах (`app.html?preview=1`) боломжтой.
-- Supabase тохируулсны дараа бүрэн урсгал (бүртгэл → тест → түүх → дасгал → AI) ажиллана.
+- Тохиргоо (`src/lib/config.js`) байвал бүртгэл/нэвтрэлт Firebase-ээс ажиллана.
+- Firebase-ийн **Authorized Domains**-д `localhost` байх ёстой (анхдагчаар байдаг).
+- Бүртгэлгүй тест өгөх, dashboard-ын дизайн харах (`app.html?preview=1`) нь
+  тохиргоогүй ч ажиллана.
 
 ---
 
-## 3. Supabase project үүсгэх
+## 3. Firebase project тохируулах
 
-1. [supabase.com](https://supabase.com) → **New project** үүсгэнэ үү.
-2. **Project Settings → API** дээрээ дараах утгуудыг авна:
-   - `Project URL`
-   - `anon public` key
-3. Үүнийг `src/lib/config.js` дотор бичнэ үү:
+Танай project: **`perpx-df732`** (config `src/lib/config.js` дотор аль хэдийн байна).
 
-```js
-export const CONFIG = {
-  supabaseUrl: "https://xxxxxx.supabase.co",
-  supabaseAnonKey: "eyJhbGciOi...",
-  appName: "NEXUS",
-};
-```
+1. [Firebase Console](https://console.firebase.google.com) → төсөлөө сонгоно уу.
+2. **Project settings → Your apps → Web app (`</>`)** → SDK config-ийг авч
+   `src/lib/config.js` дээрх `FIREBASE_CONFIG`-тэй тулгана (одоогоор таарч байвал юу ч өөрчлөхгүй).
+3. **Authentication → Get started** → Provider-үүдээ идэвхжүүлнэ:
+   - **Email/Password** → Enable → Save
+   - **Google** → Enable → дэмжих имэйлээ сонгоод Save
+4. **Authentication → Settings → Authorized domains** хэсэгт нэмнэ:
+   - `localhost` (мэдээж байх ёстой)
+   - `nbaenkhbat-create.github.io` (GitHub Pages хувилбар)
+5. **Firestore Database → Create database** → Production mode
+   (сүүлийн үе: `Enterprise` edition санал болгодог; хаана байрлахаа сонгоно —
+   жишээ нь `nam5` (US)).
 
-> `anon key` нь **publication түлхүүр** бөгөөд RLS-тэй хамт frontend-д зориулж
-> зөвхөн унших эрхээр хязгаарлагдана. Нууц үг, service role key-г хэзээ ч
-> энд бичихгүй (`.env` ба Supabase Secret хадгална).
+> CLI-аар auth тохируулах бол: `firebase.json` дэх `auth` блок ашиглана:
+> `npx -y firebase-tools@latest deploy --only auth`
 
 ---
 
-## 4. Database бүтэц болон migration
+## 4. Database бүтэц, rules, индекс
 
-Сонголт А — **CLI**:
+**Firestore collection-ууд:**
+
+| Collection | Баримт | Агуулга |
+|---|---|---|
+| `profiles` | `{uid}` | display_name, email, created_at |
+| `assessments` | auto-id | user_id, kind, overall, rawTotal, maxTotal, skills{}, perQuestion[] |
+| `exercise_progress` | `{uid}_{exerciseId}` | user_id, exercise_id, status, score, completed_at |
+| `ai_usage_logs` | auto-id | user_id, feature, created_at (зөвхөн function бичнэ) |
+
+**Хамгаалалт** ([firestore.rules](firestore.rules)): хэрэглэгч **зөвхөн өөрийн**
+бүх өгөгдлийг унших/бичих боломжтой; `assessments` өөрчлөгдөхгүй (түүх тогтмол);
+ID сольж бусдын өгөгдөл харах боломжгүй; бусад бүх зам default-deny.
+
+**Deploy:**
 
 ```bash
-npx -y supabase login
-npx -y supabase link --project-ref XXXXXXXX
-npx -y supabase db push
+npx -y firebase-tools@latest login            # анхны удаа
+npx -y firebase-tools@latest use perpx-df732
+npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes
 ```
 
-Сонголт Б — **SQL Editor**: Supabase Dashboard → SQL Editor →
-[`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)-ийн агуулгыг
-хуулаад **Run** дарна уу.
-
-Үүсэх хүснэгтүүд: `profiles`, `assessments`, `assessment_answers`,
-`skill_results`, `exercises`, `exercise_progress`, `ai_usage_logs`.
-
-RLS бодитоор идэвхжсэн: хэрэглэгч **зөвхөн өөрийн** тест, хариулт, дасгалын
-явцыг унших/засах боломжтой; ID сольж бусдын өгөгдөл харах боломжгүй.
-`exercises` хүснэгтийг зөвхөн админ (SQL/сэрвис-рүү) бичнэ.
+Индексүүд ([firestore.indexes.json](firestore.indexes.json)):
+`assessments(user_id ASC, completed_at DESC)` ба `ai_usage_logs(user_id ASC, created_at ASC)`.
+Индекс боловсруулах хугацаа: хэдэн минут.
 
 ---
 
-## 5. Authentication тохируулах
+## 5. Authentication: Google OAuth
 
-**Имэйл бүртгэл** — аль хэдийн идэвхтэй байна:
-Authentication → Providers → **Email** → `Enable` + `Confirm email` сонголт.
+1. Firebase Console → **Authentication → Google → Enable** (анхдагч web client
+   автоматаар үүснэ).
+2. **Authorized domain**-д `nbaenkhbat-create.github.io` нэмсэн байх (§3.4).
+3. `firebase.json` дэх `googleSignIn.authorizedRedirectUris`-д нэмэлт хаяг байвал
+   `npx -y firebase-tools@latest deploy --only auth` ажиллуулна.
 
-**Google OAuth (сонголттой)** — бодит тохиргоо шаардлагатай:
-
-1. [Google Cloud Console](https://console.cloud.google.com) → **OAuth consent screen** → **Credentials → Create OAuth client ID (Web application)**.
-2. Authorized redirect URI рүү Supabase-ийн callback-ийг нэмнэ:
-   `https://XXXX.supabase.co/auth/v1/callback`
-3. Supabase → Authentication → Providers → **Google** → Enable →
-   `Client ID`, `Client Secret`-ийг оруулна.
-4. Authentication → URL Configuration → **Site URL** болон **Redirect URLs**-д
-   хэрэглэх хаягаа нэмнэ (жишээ: `https://<user>.github.io/<repo>/app.html`,
-   мөн local `http://localhost:8080/app.html`).
-
-> Google тохируулаагүй байхад товч ажиллаж чадахгүй — тухайн үед систем
-> «Google Provider идэвхгүй» гэсэн ойлгомжтой мэдэгдэл харуулна (хуурамч ажиллагаа үгүй).
-
-**Нууц үг сэргээх холболт**: Authentication → URL Configuration →
-Redirect URLs-д `https://<user>.github.io/<repo>/reset.html` нэмнэ үү.
+**Нууц үг сэргээх холболт**: Firebase өөрөө `reset.html` руу чиглүүлэхийн тулд
+**Authentication → Templates → Password reset → Custom action URL** дээр
+`https://nbaenkhbat-create.github.io/nexus-ai/reset.html` бичнэ үү
+(local тест: `http://localhost:8090/reset.html`).
 
 ---
 
-## 6. Gemini API key авах, хамгаалалттай тохируулах
+## 6. Gemini API key — хамгаалалттай тохируулах
 
 1. [Google AI Studio](https://aistudio.google.com/apikey) → API key үүсгэнэ үү.
-2. **Хэзээ ч** энэ түлхүүрийг дараах газарт бичихгүй:
-   - `index.html` / ямар ч frontend JS
-   - GitHub repository
+2. **Хэзээ ч** дараах газарт бичихгүй:
+   - `index.html` / ямар ч frontend JS / `src/lib/config.js`
    - localStorage / console
-3. Зөвхөн Supabase Secret болгон тавина:
+3. Зөвхөн **Cloud Functions Secret** болгон тавина (Cloud Functions **Blaze
+   (pay-as-you-go) төлөв** шаардана — нэг удаа upgrade):
 
 ```bash
-npx -y supabase secrets set GEMINI_API_KEY=AIza...
+cd functions && npm install && cd ..
+npx -y firebase-tools@latest functions:secrets:set GEMINI_API_KEY
+# сонголт:
+npx -y firebase-tools@latest functions:secrets:set GEMINI_MODEL
+npx -y firebase-tools@latest functions:secrets:set AI_DAILY_LIMIT   # анхдагч 30
 ```
-
-(Dashboard-аар бол: Project Settings → Edge Functions → Secrets)
 
 **Environment variables:**
 
-| Нэр | хаана | Утга |
+| Нэр | Хаана | Утга |
 |---|---|---|
-| `SUPABASE_URL` | `src/lib/config.js` | Project URL (public) |
-| `SUPABASE_ANON_KEY` | `src/lib/config.js` | anon key (public, RLS-тэй) |
-| `GEMINI_API_KEY` | Supabase Secret | **нууц** — зөвхөн сервер |
-| `GEMINI_MODEL` | Supabase Secret (сонголт) | анхдагч `gemini-2.5-flash` |
-| `AI_DAILY_LIMIT` | Supabase Secret (сонголт) | хэрэглэгч бүрийн өдрийн хязгаар (анхдагч 30) |
-| `AI_MAX_TOKENS` | Supabase Secret (сонголт) | хариултын урт (анхдагч 900) |
+| `GEMINI_API_KEY` | Functions Secret | **нууц** — зөвхөн сервер |
+| `GEMINI_MODEL` | Functions Secret (сонголт) | анхдагч `gemini-2.5-flash` |
+| `AI_DAILY_LIMIT` | Functions Secret (сонголт) | хэрэглэгч бүрийн өдрийн хязгаар |
+| `AI_MAX_TOKENS` | Functions Secret (сонголт) | хариултын урт (анхдагч 900) |
 
-`.env.example` файлд эдгээр нэрүүд байна. `.env` файл Git-д орохгүй (`.gitignore`).
+`.env.example`-д эдгээр нэрүүд байна; `.env` файл Git-д орохгүй (`.gitignore`).
 
 ---
 
 ## 7. Gemini model солих
 
-Анхдагч model: `gemini-2.5-flash`.
-Боломжтой model нэрүүдийг албан ёсноос шалгана уу:
+Анхдагч: `gemini-2.5-flash`. Боломжтой model нэрүүд:
 https://ai.google.dev/gemini-api/docs/models
 
-Солихдоо:
-
 ```bash
-npx -y supabase secrets set GEMINI_MODEL=gemini-2.5-pro
+npx -y firebase-tools@latest functions:secrets:set GEMINI_MODEL=gemini-2.5-pro
+npx -y firebase-tools@latest deploy --only functions
 ```
 
 Model нэрийг кодын олон хэсэгт бичээгүй — зөвхөн нэгэн газар (`GEMINI_MODEL`).
 
 ---
 
-## 8. Backend function deploy хийх
+## 8. Backend (Cloud Function) deploy
 
 ```bash
-npx -y supabase functions deploy gemini --no-verify-jwt=false
+cd functions && npm install && cd ..
+npx -y firebase-tools@latest deploy --only functions
 ```
 
-> Function өөрөө дахин JWT шалгадаг; холболтын токен шаардана.
-> Деплой хийсний дараа `app.html` → **AI чиглүүлэгч** хэсгээс шалгана уу.
-
-Ажиллахгүй бол (жнь. түлхүүр ороогүй) хуудас алдаагаа тодорхой харуулж,
-бэлтгэсэн энгийн зөвлөмжөөр үргэлжлүүлнэ — тест/дасгал/хиц нөлөөлөхгүй.
+Деплой хийсний дараа `app.html` → **AI чиглүүлэгч** хэсгээс шалгана уу.
+Function deploy хийгээгүй/алдаатай бол хуудас ойлгомжтой мэдэгдэл + бэлтгэсэн
+зөвлөмжөөр хэвийн үргэлжлэнэ — тест/дасгал/хиц нөлөөлөхгүй.
 
 ---
 
 ## 9. GitHub руу push, GitHub Pages тохируулах
 
+Таны токен бэлэн байгаа тул (`gh` нэвтэрсэн):
+
 ```bash
-git init
-git add .
-git commit -m "NEXUS: нүүр хуудас, тест, dashboard, Supabase backend"
-git branch -M main
-git remote add origin https://github.com/<user>/<repo>.git
+git remote add origin https://github.com/nbaenkhbat-create/nexus-ai.git
 git push -u origin main
 ```
+
+(Эсвэл: `gh repo create nexus-ai --public --source . --push`)
 
 GitHub Pages:
 1. Repository → **Settings → Pages**
 2. Source: `Deploy from a branch` → branch `main`, folder `/ (root)` → Save.
-3. Хэдэн минутын дараа `https://<user>.github.io/<repo>/` ажиллана.
+3. Хэдэн минутын дараа `https://nbaenkhbat-create.github.io/nexus-ai/` ажиллана.
+4. Firebase **Authorized domains**-д `nbaenkhbat-create.github.io` нэмсэн байхыг
+   дахин шалгана уу (§3.4).
 
-**Санамж:**
-- Бүх зам **харьцангуй** (`./src/...`) байсан тул repo-н нэрний доор ажиллана.
-- Supabase Redirect URL-д энэ хаягаа заавал нэмнэ үү.
-- Supabase-ийн хувьд хязгаарлалт байж магадгүй — шаардлагатай бол
-  localhost болон GitHub Pages хаягийг хоёуланг нь Allow list-д нэмнэ.
+**Санамж:** бүх зам **харьцангуй** (`./src/...`) байх тул repo-н нэрний доор ажиллана.
+Эмх замбараагүй зүйл Git-д орохгүй: `.env`, `functions/node_modules`, `.firebase/`
+(`.gitignore`-д байна). **Нууц түлхүүр файлд байхгүй.**
 
 ---
 
 ## 10. Тест ажиллуулах (шийдвэрлэх бүрт шалгах зүйлс)
 
-Эхлээд local server асаагаад дараахыг шалгана уу:
-
-1. Нүүр хуудас нээгдэж, анхны ороход `logo-loading.mp4` fullscreen тоглоно (нэг удаа).
-2. Mobile/desktop layout зөв (гэрийн хэмжээг өөрчлөх).
-3. «Үнэгүй тест эхлэх» → заавар → 15 асуулт нэг нэгээрээ.
-4. Хоосон хариулт → анхааруулга; refresh → явц сэргэнэ.
-5. Үр дүн: нийт хувь, дөрвөн чадвар, график, тайлбар, «Туршилтын үнэлгээ» шошго.
-6. Бүртгэл/нэвтрэлт (имэйл баталгаажуулалттай).
-7. Dashboard: хоосон төлөв («Та хараахан тест өгөөгүй байна»), дараа нь бодит өгөгдөл.
-8. Тестийн түүх → дэлгэрэнгүй; бүртгэлгүй үеийн үр дүнг холбох баталгаажуулалт.
-9. Дасгал → шалгах → жишээ хариулт → ахицын тайлангаас харагдах.
-10. AI чиглүүлэгч: хариулт; түлхүүр байхгүй бол ойлгомжтой мэдэгдэл.
-11. Browser console дээр улаан алдаа байхгүй эсэх.
-12. Network дээр `GEMINI_API_KEY` харагдахгүй (зөвхөн `/functions/v1/gemini` дуудлага).
+1. Нүүр хуудас нээгдэж, анхны ороход `logo-loading.mp4` дэлгэцийн хэмжээгээр тоглоно (нэг удаа).
+2. Mobile/desktop layout зөв.
+3. «Үнэгүй тест эхлэх» → заавар → 15 асуулт → хоосон хариултын шалгалт → refresh дээр сэргээх.
+4. Үр дүн: нийт хувь, дөрвөн чадвар, график, тайлбар, «Туршилтын үнэлгээ» шошго.
+5. Бүртгэл/нэвтрэлт (имэйл + Google), нууц үг сэргээх.
+6. Dashboard: хоосон төлөв («Та хараахан тест өгөөгүй байна»), дараа нь бодит өгөгдөл.
+7. Тестийн түүх → дэлгэрэнгүй; бүртгэлгүй үеийн үр дүнг холбох баталгаажуулалт.
+8. Дасгал → шалгах → жишээ хариулт → ахицын тайлангаас харагдах.
+9. AI чиглүүлэгч: хариулт авах; function байхгүй бол ойлгомжтой мэдэгдэл.
+10. Browser console дээр улаан алдаа байхгүй.
+11. Network дээр `GEMINI_API_KEY` харагдахгүй (зөвхөн Firebase/Gemini дуудлагууд).
+12. Хоёр хэрэглэгчээр ороод бүрэн өөр өөрийн өгөгдөл харах (Firestore rules).
 
 `docs/source/` доторх албан ёсны тестийн Word файл: асуулт, зөв хариулын түлхүүр
 (`1-B, 2-B, 3-B, 4-B, 5-C, 6-C, 7-B, 8-C, 9-A, 10-B, 11-C, 12-C`), онооны дүрэм,
@@ -242,25 +236,28 @@ GitHub Pages:
 
 | Алдаа | Шалтгаан / Засвар |
 |---|---|
-| «Supabase тохируулаагүй байна» | `src/lib/config.js` дээр URL/anon key оруулаагүй. |
-| Нэвтрэлтэд «Invalid login credentials» | Имэйл/нууц үг буруу, эсвэл имэйл баталгаажаагүй. |
-| Google товч ажиллахгүй | Provider байхгүй → README §5. |
-| Сэргээх холболт ирэхгүй | Redirect URL-д `reset.html` нэмээгүй. |
-| «429 / хязгаарт хүрлээ» | Өдрийн AI хязгаар (`AI_DAILY_LIMIT`). Маргааш дахин оролдоно. |
-| AI «unavailable» | `GEMINI_API_KEY` Secret эсвэл model нэр шалгана уу. |
-| Migration дараагийн удаа дахин ажиллавал алдаа | Бүгд `IF NOT EXISTS`/`DROP IF EXISTS` — аюулгүй. |
-| GitHub Pages дээр шинэ хуудас 404 | Файлын нэр/зам тэгш байна эсэх; cache. |
-| Шинэчлэл харагдахгүй | Ctrl+F5 (hard reload), browser cache. |
+| `auth/operation-not-allowed` | Firebase Console → Authentication → Providers дээр Email/Google идэвхгүй. |
+| `auth/unauthorized-domain` | Authorized domains-д уг домэйн байхгүй (§3.4). |
+| `auth/invalid-credential` | Имэйл/нууц үг буруу. |
+| `auth/popup-closed-by-user` | Google цонх хаагдсан — дахин оролдоно уу. |
+| Rules `permission-denied` буцааж байна | `firestore.rules` deploy хийгээгүй → §4. |
+| `failed-precondition` (function) | `GEMINI_API_KEY` secret идэвхгүй → §6. |
+| Function байхгүй (`not-found`) | `deploy --only functions` → §8. Blaze төлөв шаардлагатай. |
+| `resource-exhausted` (429) | өдрийн AI хязгаар (`AI_DAILY_LIMIT`). |
+| Индекс боловсруулах гэж байна | Хэдэн минут хүлээнэ үү; дараа нь дахин ачаална. |
+| Шинэчлэл харагдахгүй | Ctrl+F5 (hard reload). |
 
 ---
 
 ## 12. Хүүхдийн аюулгүй байдал, нууцлал
 
 - Минимал дата: зөвхөн хэрэглэгчийн нэр, имэйл. Овог нэр, регистр, сургууль биш.
-- Gemini руу зөвхөн ярилцлага + чадварын хувь чадвар дамжина; хувийн мэдээлэл биш.
-- Үнэлгээ «туршилтын урьдчилсан үнэлгээ» — эмнэлзүйн онош биш гэдгийг дурддаг.
-- Бүртгэл устгах: Supabase Dashboard → Authentication → Users (profiles,
-  assessments, answers, progress бүгд цуг нь устна — `on delete cascade`).
+- Gemini руу зөвхөн ярилцлага + чадварын хувь дамжина; хувийн мэдээлэл биш.
+- Нууц үгийг Firebase Auth хариуцна — өөр database-д plaintext байдлаар хадгалагдахгүй.
+- Үнэлгээ «туршилтын урьдчилсан үнэлгээ» — эмнэлзүйн онош биш гэдгийг ил тод дурддаг.
+- Бүртгэл устгах: Firebase Console → Authentication → Users (профайл,
+  тестүүд, дасгалын явц `on delete` устгалгүй тул тусад нь rules-ийн дагуу устгана —
+  шаардлагатай бол Cloud Function-оор багц устгал нэмж болно).
 
 ---
 

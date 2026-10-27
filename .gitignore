@@ -2,8 +2,17 @@
 .env
 .env.*
 !.env.example
+functions/.env
+functions/.secret*
 *.pem
 *.key
+
+# --- Firebase CLI ---
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+functions/node_modules/
 
 # --- Хэрэгцээгүй ---
 node_modules/
@@ -12,11 +21,6 @@ build/
 .sass-cache/
 .npm/
 .cache/
-
-# --- Supabase CLI ---
-.supabase/
-supabase/.temp/
-supabase/.branches/
 
 # --- Түр файлууд ---
 _nexus_extract/

@@ -1,0 +1,34 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "NEXUS",
+        "authorizedRedirectUris": [
+          "http://localhost:8090",
+          "https://nbaenkhbat-create.github.io"
+        ]
+      }
+    }
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**",
+      "docs/**",
+      ".env*",
+      "*.md",
+      "_nexus_extract/**"
+    ]
+  }
+}

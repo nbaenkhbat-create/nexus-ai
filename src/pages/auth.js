@@ -1,6 +1,6 @@
 /**
  * NEXUS — Бүртгэл/нэвтрэлт хуудсуудын логик (login, signup, reset).
- * Supabase тохируулаагүй үед хуудас "хугарах" биш, тодорхой заавар харуулна.
+ * Firebase тохируулаагүй үед хуудас "хугарах" биш, тодорхой заавар харуулна.
  */
 import {
   configured,
@@ -31,19 +31,31 @@ function setLoading(btn, loading, text) {
 }
 
 function translateError(e) {
-  const m = (e && e.message ? e.message : String(e)).toLowerCase();
-  if (m.includes("invalid login")) return "Имэйл эсвэл нууц үг буруу байна.";
-  if (m.includes("already registered") || m.includes("already been registered"))
+  const raw = e && e.message ? e.message : String(e);
+  const m = raw.toLowerCase();
+  // --- Firebase Auth кодууд ---
+  if (m.includes("auth/invalid-credential") || m.includes("auth/wrong-password") || m.includes("auth/user-not-found") || m.includes("invalid login"))
+    return "Имэйл эсвэл нууц үг буруу байна.";
+  if (m.includes("auth/email-already-in-use") || m.includes("already registered"))
     return "Энэ имэйл бүртгэлтэй байна — нэвтрэхийг оролдоно уу.";
+  if (m.includes("auth/invalid-email")) return "Имэйлийн хэлбэр буруу байна.";
+  if (m.includes("auth/weak-password") || m.includes("password"))
+    return "Нууц үгийн шаардлага хангахгүй байна (доод хэмжээ 8).";
+  if (m.includes("auth/too-many-requests") || m.includes("rate limit") || m.includes("too many"))
+    return "Олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу.";
+  if (m.includes("auth/operation-not-allowed") || m.includes("auth/configuration-not-identified") || m.includes("auth/configuration-not-found"))
+    return "Firebase Authentication тохируулаагүй байна — Firebase Console → Authentication → Providers дээр Email/Password (болон Google) provider-ийг идэвхжүүлнэ үү.";
+  if (m.includes("auth/unauthorized-domain"))
+    return "Энэ вэб хаяг зөвшөөрөгдөөгүй — Firebase Console → Authentication → Settings → Authorized Domains-д нэмнэ үү.";
+  if (m.includes("auth/popup-closed-by-user") || m.includes("popup"))
+    return "Нэвтрэх цонх хаагдлаа. Дахин оролдоно уу.";
+  if (m.includes("auth/requires-recent-login"))
+    return "Аюулгүй байдлын шалтгаанаар дахин нэвтэрсний дараа нууц үгээ шинэчилнэ үү.";
+  if (m.includes("auth/user-disabled")) return "Энэ бүртгэл идэвхгүй болсон байна.";
+  if (m.includes("auth/network-request-failed") || m.includes("failed to fetch") || m.includes("network"))
+    return "Интернэт холболт эсвэл Firebase тохиргоог шалгана уу.";
   if (m.includes("email not confirmed")) return "Имэйлээ баталгаажуулаагүй байна. Имэйлээ шалгана уу.";
-  if (m.includes("password")) return "Нууц үгийн шаардлага хангахгүй байна (доод хэмжээ 8).";
-  if (m.includes("rate limit") || m.includes("too many")) return "Олон удаа оролдлоо. Түр хүлээгээд дахин оролдоно уу.";
-  if (m.includes("signup is disabled")) return "Бүртгэл одоогоор хаалттай байна — админд хандана уу.";
-  if (m.includes("provider is not enabled") || m.includes("oauth") || m.includes("social"))
-    return "Google нэвтрэлт одоогоор идэвхгүй байна — Supabase дээр Google Provider-ийг идэвхжүүлнэ үү (README харна уу).";
-  if (m.includes("failed to fetch") || m.includes("network"))
-    return "Интернэт холболт эсвэл Supabase тохиргоог шалгана уу.";
-  return e && e.message ? e.message : "Алдаа гарлаа. Дахин оролдоно уу.";
+  return raw || "Алдаа гарлаа. Дахин оролдоно уу.";
 }
 
 function renderSetupNotice() {
@@ -53,11 +65,10 @@ function renderSetupNotice() {
   box.style.marginBottom = "18px";
   box.innerHTML = `
     <span>
-      <b>Supabase тохируулаагүй байна.</b><br/>
-      Бүртгэл, нэвтрэлт ажиллахын тулд:<br/>
-      1) <a href="https://supabase.com" target="_blank" rel="noopener">supabase.com</a> дээр төсөл үүсгээд<br/>
-      2) <code>src/lib/config.js</code> доторх <code>supabaseUrl</code>,
-      <code>supabaseAnonKey</code> утгыг солиорой (README-д алхам бүрээр байна).<br/>
+      <b>Firebase тохируулаагүй байна.</b><br/>
+      Бүртгэл, нэвтрэлт ажиллахын тулд:
+      <code>src/lib/config.js</code> дээрх <code>FIREBASE_CONFIG</code>
+      утгуудыг Firebase Console → Project settings → Your apps-аас авч оруулна уу (README-д алхам бүрээр байна).<br/>
       <a class="btn btn-sm btn-outline" style="margin-top:10px;" href="./app.html?preview=1">Дизайн урьдчилж үзэх →</a>
     </span>`;
   box.classList.remove("hidden");
@@ -108,15 +119,15 @@ if (page === "signup") {
     try {
       const data = await signUp({ email, password, displayName });
       setLoading($("submitBtn"), false, "Бүртгүүлэх →");
-      if (data && data.session) {
-        // имэйл баталгаажуулалт шаардахгүй тохирготой үед шууд нэвтэрнэ
-        location.href = "./app.html";
-      } else {
-        form.classList.add("hidden");
-        const box = $("successBox");
-        box.classList.remove("hidden");
-        box.innerHTML = `<b>Бүртгэл үүсгэлээ!</b><br/> <b>${email}</b> хаяг руу баталгаажуулах имэйл илгээлээ. Имэйлээ баталгаажуулсны дараа нэвтэрнэ үү.`;
-      }
+      // Firebase бүртгэл үүсгээд шууд нэвтрэх боловч имэйл баталгаажуулалтыг
+      // ил тод харуулна (баталгаажуулалтгүй оруулж болох эсэхийг Firebase тохиргоо хянана).
+      form.classList.add("hidden");
+      const box = $("successBox");
+      box.classList.remove("hidden");
+      box.innerHTML = `<b>Бүртгэл үүсгэлээ!</b><br/> <b>${email}</b> хаяг руу баталгаажуулах имэйл илгээлээ.
+        Имэйлээ баталгаажуулаад нэвтэрнэ үү (баталгаажуулалт шаардаагүй тохиргоо бол доорх товчоор шууд орно).<br/><br/>
+        <a class="btn btn-primary" href="./app.html">Dashboard руу үргэлжлүүлэх →</a>`;
+      return;
     } catch (err) {
       showError("formError", translateError(err));
       setLoading($("submitBtn"), false, "Бүртгүүлэх →");
