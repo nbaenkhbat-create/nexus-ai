@@ -27,6 +27,7 @@
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "perpx-df732";
 const ALLOWED_ORIGINS = new Set([
   process.env.APP_ORIGIN || "https://perpx-df732.web.app",
+  "https://nbaenkhbat-create.github.io", // GitHub Pages (NEXUS олон нийтийн холбоос)
   "http://localhost:8090",
   "http://127.0.0.1:8090",
 ]);
